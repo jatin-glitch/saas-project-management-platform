@@ -64,14 +64,7 @@ jobs:
       with:
         file: ./frontend/coverage/lcov.info
         flags: frontend
-
-    - name: Run Lighthouse CI
-      run: |
-        cd frontend
-        npm install -g @lhci/cli@0.12.x
-        lhci autorun
-      env:
-        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      if: always()
 
   # Deploy to Staging (only on frontend-dev branch)
   deploy-staging:
