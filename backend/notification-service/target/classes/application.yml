@@ -1,0 +1,186 @@
+spring:
+  application:
+    name: notification-service
+  
+  # Database configuration
+  datasource:
+    url: jdbc:h2:mem:notificationdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  # RabbitMQ configuration
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    
+  # Cloud Stream configuration
+  cloud:
+    stream:
+      default:
+        binder: rabbit1
+      binders:
+        rabbit1:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: localhost
+                port: 5672
+                username: guest
+                password: guest
+      bindings:
+        # Input bindings for consuming events
+        project-created:
+          destination: project.created
+          group: notification-service
+          content-type: application/json
+        task-assigned:
+          destination: task.assigned
+          group: notification-service
+          content-type: application/json
+        task-status-changed:
+          destination: task.status.changed
+          group: notification-service
+          content-type: application/json
+        issue-created:
+          destination: issue.created
+          group: notification-service
+          content-type: application/json
+        
+        # Output bindings for publishing events (if needed)
+        notification-events:
+          destination: notification.events
+          content-type: application/json
+  
+  # Email configuration
+  mail:
+    host: localhost
+    port: 587
+    username: ${EMAIL_USERNAME:}
+    password: ${EMAIL_PASSWORD:}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  
+  # WebSocket configuration
+  websocket:
+    allowed-origins: "http://localhost:3000,http://localhost:8080"
+
+# Server configuration
+server:
+  port: 8083
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Logging configuration
+logging:
+  level:
+    com.saas.notification: DEBUG
+    org.springframework.cloud.stream: DEBUG
+    org.springframework.amqp: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Application-specific configuration
+app:
+  notification:
+    email:
+      enabled: true
+      from: noreply@saas-platform.com
+      base-url: http://localhost:3000
+    
+    websocket:
+      enabled: true
+      heartbeat-interval: 30000
+    
+    cleanup:
+      enabled: true
+      old-notifications-days: 90
+      expired-notifications-hours: 1
+    
+    retry:
+      enabled: true
+      max-attempts: 3
+      delay-ms: 5000
+
+# Security configuration
+security:
+  audit:
+    enabled: true
+    async: true
+    retention-days: 365
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/notificationdb}
+    username: ${DATABASE_USERNAME:saas_user}
+    password: ${DATABASE_PASSWORD:saas_password}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+
+logging:
+  level:
+    com.saas.notification: INFO
+    org.springframework.cloud.stream: WARN
+    org.springframework.amqp: WARN

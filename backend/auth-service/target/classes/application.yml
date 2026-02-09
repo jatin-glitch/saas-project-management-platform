@@ -1,0 +1,119 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /auth
+
+spring:
+  application:
+    name: auth-service
+  
+  # Database configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/saas_auth
+    username: ${DB_USERNAME:saas_auth_user}
+    password: ${DB_PASSWORD:change_me_in_production}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+  
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  # Flyway migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Security configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/auth
+
+# JWT configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890} # Change in production!
+    access-token-expiration: 900 # 15 minutes in seconds
+    refresh-token-expiration: 604800 # 7 days in seconds
+    issuer: saas-auth-service
+
+# Rate limiting configuration
+resilience4j:
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 20
+        limitRefreshPeriod: 1m
+        timeoutDuration: 2s
+        registerHealthIndicator: true
+    instances:
+      login:
+        baseConfig: default
+        limitForPeriod: 5
+      refresh:
+        baseConfig: default
+        limitForPeriod: 15
+      authentication:
+        baseConfig: default
+      refreshToken:
+        baseConfig: default
+        limitForPeriod: 10
+
+# Logging configuration
+logging:
+  level:
+    com.saas.auth: DEBUG
+    org.springframework.security: DEBUG
+    io.github.resilience4j: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/auth-service.log
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# CORS configuration
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+  allowed-headers: Authorization,Content-Type,X-Tenant-ID,X-Requested-With
+  allow-credentials: true
+  max-age: 3600
+
+# Tenant configuration
+tenant:
+  header-name: X-Tenant-ID
+  default-tenant: 1
+  isolation-strategy: database
