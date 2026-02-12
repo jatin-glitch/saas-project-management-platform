@@ -4,11 +4,11 @@ import com.saas.common.event.*;
 import com.saas.notification.entity.Notification;
 import com.saas.notification.entity.NotificationType;
 import com.saas.notification.service.NotificationService;
+import com.saas.common.event.EventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EventDrivenNotificationIntegrationTest {
     
     @Autowired
-    private StreamBridge streamBridge;
+    private EventPublisher streamBridge;
     
     @Autowired
     private NotificationService notificationService;
@@ -66,7 +66,7 @@ public class EventDrivenNotificationIntegrationTest {
         );
         
         // Act
-        streamBridge.send("project.created", event);
+        streamBridge.publish(event);
         
         // Wait for async processing
         Thread.sleep(2000);
@@ -106,7 +106,7 @@ public class EventDrivenNotificationIntegrationTest {
         );
         
         // Act
-        streamBridge.send("task.assigned", event);
+        streamBridge.publish(event);
         
         // Wait for async processing
         Thread.sleep(2000);
@@ -148,7 +148,7 @@ public class EventDrivenNotificationIntegrationTest {
         );
         
         // Act
-        streamBridge.send("task.status.changed", event);
+        streamBridge.publish(event);
         
         // Wait for async processing
         Thread.sleep(2000);
@@ -190,7 +190,7 @@ public class EventDrivenNotificationIntegrationTest {
         );
         
         // Act
-        streamBridge.send("issue.created", event);
+        streamBridge.publish(event);
         
         // Wait for async processing
         Thread.sleep(2000);
@@ -233,9 +233,9 @@ public class EventDrivenNotificationIntegrationTest {
         );
         
         // Act - Send the same event twice
-        streamBridge.send("project.created", event);
+        streamBridge.publish(event);
         Thread.sleep(1000);
-        streamBridge.send("project.created", event);
+        streamBridge.publish(event);
         Thread.sleep(2000);
         
         // Assert - Should only have one notification due to idempotency
@@ -258,7 +258,7 @@ public class EventDrivenNotificationIntegrationTest {
             testUserId, "Test User", testUserEmail
         );
         
-        streamBridge.send("project.created", event);
+        streamBridge.publish(event);
         Thread.sleep(2000);
         
         List<Notification> notifications = notificationService.getUnreadNotifications(testTenantId, testUserId);

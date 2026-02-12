@@ -1,0 +1,110 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: saas-monolith
+  
+  # Database configuration
+  datasource:
+    url: jdbc:postgresql://postgres:5432/saas_platform
+    username: saas_user
+    password: saas_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+  
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  # Flyway migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  # Redis configuration
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# JWT configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+    issuer: saas-monolith
+
+# Rate limiting configuration
+resilience4j:
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 20
+        limitRefreshPeriod: 1m
+        timeoutDuration: 2s
+        registerHealthIndicator: true
+    instances:
+      login:
+        baseConfig: default
+        limitForPeriod: 5
+      refresh:
+        baseConfig: default
+        limitForPeriod: 15
+
+# Logging configuration
+logging:
+  level:
+    com.saas: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# CORS configuration
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:80}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+  allowed-headers: Authorization,Content-Type,X-Tenant-ID,X-Requested-With
+  allow-credentials: true
+  max-age: 3600
+
+# Tenant configuration
+tenant:
+  header-name: X-Tenant-ID
+  default-tenant: 1
+  isolation-strategy: database

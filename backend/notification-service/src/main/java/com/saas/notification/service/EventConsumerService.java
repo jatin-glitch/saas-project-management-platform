@@ -6,20 +6,19 @@ import com.saas.notification.entity.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Service for consuming domain events and creating notifications.
  * 
  * This service listens to domain events from other services and creates
  * appropriate notifications. It demonstrates event-driven architecture
- * with proper decoupling between services.
+ * with proper decoupling between services using Spring's event system.
  * 
  * Key features:
  * - Event-driven notification creation
@@ -29,7 +28,7 @@ import java.util.function.Consumer;
  * 
  * Event flow:
  * 1. Business service publishes domain event
- * 2. Event broker routes event to appropriate consumers
+ * 2. Spring's event system routes event to appropriate listeners
  * 3. This service receives event and creates notifications
  * 4. Notifications are processed and delivered via configured channels
  */
@@ -45,6 +44,7 @@ public class EventConsumerService {
      * Handle project created events.
      * Creates notifications for project managers and team members.
      */
+    @EventListener
     public void handleProjectCreated(@Payload ProjectCreatedEvent event) {
         try {
             logger.info("Processing PROJECT_CREATED event: {} for tenant: {}", 
@@ -88,6 +88,7 @@ public class EventConsumerService {
      * Handle task assigned events.
      * Creates notifications for the assigned user.
      */
+    @EventListener
     public void handleTaskAssigned(@Payload TaskAssignedEvent event) {
         try {
             logger.info("Processing TASK_ASSIGNED event: {} for tenant: {}", 
@@ -128,6 +129,7 @@ public class EventConsumerService {
      * Handle task status changed events.
      * Creates notifications for relevant stakeholders.
      */
+    @EventListener
     public void handleTaskStatusChanged(@Payload TaskStatusChangedEvent event) {
         try {
             logger.info("Processing TASK_STATUS_CHANGED event: {} for tenant: {}", 
@@ -180,6 +182,7 @@ public class EventConsumerService {
      * Handle issue created events.
      * Creates notifications for development team and assignees.
      */
+    @EventListener
     public void handleIssueCreated(@Payload IssueCreatedEvent event) {
         try {
             logger.info("Processing ISSUE_CREATED event: {} for tenant: {}", 
@@ -285,27 +288,5 @@ public class EventConsumerService {
             default:
                 return NotificationPriority.MEDIUM;
         }
-    }
-    
-    // Functional Spring Cloud Stream consumers
-    
-    @Bean
-    public Consumer<ProjectCreatedEvent> projectCreated() {
-        return this::handleProjectCreated;
-    }
-    
-    @Bean
-    public Consumer<TaskAssignedEvent> taskAssigned() {
-        return this::handleTaskAssigned;
-    }
-    
-    @Bean
-    public Consumer<TaskStatusChangedEvent> taskStatusChanged() {
-        return this::handleTaskStatusChanged;
-    }
-    
-    @Bean
-    public Consumer<IssueCreatedEvent> issueCreated() {
-        return this::handleIssueCreated;
     }
 }

@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  
+  # Kafka configuration
+  kafka:
+    bootstrap-servers: kafka:9092
+    producer:
+      bootstrap-servers: kafka:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      bootstrap-servers: kafka:9092
+      group-id: gateway
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# Gateway configuration
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://auth-service:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+        
+        - id: project-service
+          uri: http://project-service:8082
+          predicates:
+            - Path=/api/projects/**
+          filters:
+            - StripPrefix=1
+        
+        - id: notification-service
+          uri: http://notification-service:8083
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=1
+
+# CORS configuration
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:3000,http://localhost:80"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+# Logging configuration
+logging:
+  level:
+    com.saas.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

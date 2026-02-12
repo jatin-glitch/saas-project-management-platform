@@ -1,0 +1,66 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: saas-postgres
+    environment:
+      POSTGRES_DB: saas_platform
+      POSTGRES_USER: saas_user
+      POSTGRES_PASSWORD: saas_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - saas-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: saas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - saas-network
+
+  # Only run Auth Service for testing
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    container_name: saas-auth-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/saas_platform
+      SPRING_DATASOURCE_USERNAME: saas_user
+      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRATION: 86400000
+      LOGGING_LEVEL_ROOT: WARN
+      LOGGING_LEVEL_COM_SAAS: INFO
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - saas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  saas-network:
+    driver: bridge

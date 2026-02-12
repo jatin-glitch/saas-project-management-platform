@@ -3,11 +3,11 @@ package com.saas.common.event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for publishing domain events to the message broker.
+ * Service for publishing domain events to the in-memory event system.
  * 
  * This service handles the asynchronous publishing of events, ensuring that:
  * - Events are published reliably with retry logic
@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
  * - Events are properly logged for debugging and auditing
  * - Tenant isolation is maintained in event routing
  * 
- * The service uses Spring Cloud Stream for abstraction over the messaging system,
- * allowing us to switch between RabbitMQ, Kafka, or other brokers easily.
+ * The service uses Spring's ApplicationEventPublisher for in-memory event publishing,
+ * allowing us to maintain the event-driven architecture without external message brokers.
  */
 @Service
 public class EventPublisher {
@@ -24,7 +24,7 @@ public class EventPublisher {
     private static final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
     
     @Autowired
-    private StreamBridge streamBridge;
+    private ApplicationEventPublisher applicationEventPublisher;
     
     /**
      * Publish a domain event asynchronously.
@@ -35,16 +35,11 @@ public class EventPublisher {
         try {
             logger.info("Publishing event: {} for tenant: {}", event.getRoutingKey(), event.getTenantId());
             
-            // Use the routing key as the binding name for Spring Cloud Stream
-            boolean success = streamBridge.send(event.getRoutingKey(), event);
+            // Use Spring's ApplicationEventPublisher for in-memory event publishing
+            applicationEventPublisher.publishEvent(event);
             
-            if (success) {
-                logger.info("Successfully published event: {} with ID: {}", 
-                           event.getRoutingKey(), event.getEventId());
-            } else {
-                logger.error("Failed to publish event: {} with ID: {}", 
-                            event.getRoutingKey(), event.getEventId());
-            }
+            logger.info("Successfully published event: {} with ID: {}", 
+                       event.getRoutingKey(), event.getEventId());
             
         } catch (Exception e) {
             // Log the error but don't re-throw to avoid affecting business operations

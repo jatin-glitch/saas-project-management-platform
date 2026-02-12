@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RedisContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -28,10 +27,6 @@ public abstract class BaseIntegrationTest {
             DockerImageName.parse("redis:7-alpine"))
             .withReuse(true);
 
-    @Container
-    static final KafkaContainer<?> kafka = new KafkaContainer<>(
-            DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-            .withReuse(true);
 
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
@@ -42,8 +37,6 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.redis.host", redis::getHost);
         registry.add("spring.redis.port", redis::getFirstMappedPort);
         registry.add("spring.redis.password", () -> null);
-        
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         
         registry.add("jwt.secret", () -> "test-secret-key-for-integration-tests");
         registry.add("jwt.expiration", () -> "86400000");
